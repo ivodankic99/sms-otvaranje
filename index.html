@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="hr">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Otvori SMS</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #f4f4f4;
+            font-family: Arial, sans-serif;
+            color: #111;
+        }
+
+        .card {
+            max-width: 520px;
+            margin: 40px auto;
+            padding: 24px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 25px;
+        }
+
+        .phone {
+            margin: 18px 0;
+            font-size: 21px;
+            font-weight: bold;
+        }
+
+        .message {
+            padding: 15px;
+            background: #f1f1f1;
+            border-radius: 12px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            margin-top: 16px;
+            padding: 16px;
+            border: 0;
+            border-radius: 12px;
+            background: #16883e;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .secondary {
+            background: #555;
+        }
+
+        .notice {
+            margin-top: 16px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="card">
+        <h1>📱 SMS za prodavača</h1>
+
+        <div
+            id="phone"
+            class="phone"
+        ></div>
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+        <button id="openSms">
+            Kopiraj tekst i otvori SMS
+        </button>
+
+        <button
+            id="copyOnly"
+            class="secondary"
+        >
+            Samo kopiraj tekst
+        </button>
+
+        <div
+            id="notice"
+            class="notice"
+        >
+            Na iPhoneu nakon otvaranja poruke zalijepite kopirani tekst.
+        </div>
+    </main>
+
+    <script>
+        const params =
+            new URLSearchParams(window.location.search);
+
+        const phone =
+            params.get('phone') ?? '';
+
+        const message =
+            params.get('text') ?? '';
+
+        const phoneElement =
+            document.getElementById('phone');
+
+        const messageElement =
+            document.getElementById('message');
+
+        const noticeElement =
+            document.getElementById('notice');
+
+        phoneElement.textContent =
+            phone || 'Broj nije pronađen';
+
+        messageElement.textContent =
+            message || 'SMS tekst nije pronađen';
+
+        async function copyMessage() {
+            if (!message) {
+                return false;
+            }
+
+            try {
+                await navigator.clipboard.writeText(message);
+
+                noticeElement.textContent =
+                    '✅ SMS tekst je kopiran.';
+
+                return true;
+            } catch {
+                const textarea =
+                    document.createElement('textarea');
+
+                textarea.value = message;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+
+                document.body.appendChild(textarea);
+
+                textarea.focus();
+                textarea.select();
+
+                const copied =
+                    document.execCommand('copy');
+
+                textarea.remove();
+
+                return copied;
+            }
+        }
+
+        function isAndroid() {
+            return /Android/i.test(
+                navigator.userAgent,
+            );
+        }
+
+        document
+            .getElementById('copyOnly')
+            .addEventListener(
+                'click',
+                async () => {
+                    await copyMessage();
+                },
+            );
+
+        document
+            .getElementById('openSms')
+            .addEventListener(
+                'click',
+                async () => {
+                    if (!phone) {
+                        alert(
+                            'Telefonski broj nije pronađen.',
+                        );
+
+                        return;
+                    }
+
+                    await copyMessage();
+
+                    if (isAndroid()) {
+                        /*
+                         * Auf Android versuchen wir Nummer
+                         * und Text direkt vorzubereiten.
+                         */
+                        window.location.href =
+                            `sms:${phone}?body=${encodeURIComponent(message)}`;
+                    } else {
+                        /*
+                         * Auf dem iPhone wird offiziell
+                         * zuverlässig nur die Nummer übergeben.
+                         * Der Text wurde vorher kopiert.
+                         */
+                        window.location.href =
+                            `sms:${phone}`;
+                    }
+                },
+            );
+    </script>
+</body>
+</html>
